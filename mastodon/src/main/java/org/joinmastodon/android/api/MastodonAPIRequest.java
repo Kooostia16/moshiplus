@@ -36,6 +36,7 @@ import okhttp3.Response;
 
 public abstract class MastodonAPIRequest<T> extends APIRequest<T>{
 	private static final String TAG="MastodonAPIRequest";
+	private static final String USER_AGENT="MoshiplusAndroid/";
 
 	private String domain;
 	private AccountSession account;
@@ -85,7 +86,7 @@ public abstract class MastodonAPIRequest<T> extends APIRequest<T>{
 		try{
 			account=AccountSessionManager.getInstance().getAccount(accountID);
 			domain=account.domain;
-			account.getApiController().submitRequest(this);
+			account.getApiController().submitRequest(this, USER_AGENT);
 		}catch(Exception x){
 			Log.e(TAG, "exec: this shouldn't happen, but it still did", x);
 			invokeErrorCallback(new MastodonErrorResponse(x.getLocalizedMessage(), -1, x));
@@ -95,14 +96,14 @@ public abstract class MastodonAPIRequest<T> extends APIRequest<T>{
 
 	public MastodonAPIRequest<T> execNoAuth(String domain){
 		this.domain=domain;
-		AccountSessionManager.getInstance().getUnauthenticatedApiController().submitRequest(this);
+		AccountSessionManager.getInstance().getUnauthenticatedApiController().submitRequest(this, USER_AGENT);
 		return this;
 	}
 
 	public MastodonAPIRequest<T> exec(String domain, Token token){
 		this.domain=domain;
 		this.token=token;
-		AccountSessionManager.getInstance().getUnauthenticatedApiController().submitRequest(this);
+		AccountSessionManager.getInstance().getUnauthenticatedApiController().submitRequest(this, USER_AGENT);
 		return this;
 	}
 

@@ -12,16 +12,13 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
 import org.joinmastodon.android.BuildConfig;
-import org.joinmastodon.android.MastodonApp;
 import org.joinmastodon.android.api.gson.IsoInstantTypeAdapter;
 import org.joinmastodon.android.api.gson.IsoLocalDateTypeAdapter;
 import org.joinmastodon.android.api.session.AccountSession;
 import org.joinmastodon.android.model.Status;
 import org.joinmastodon.android.ui.utils.UiUtils;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -60,38 +57,16 @@ public class MastodonAPIController{
 			.build();
 
 	private AccountSession session;
-	private static List<String> badDomains = new ArrayList<>();
-
-	static{
-		thread.start();
-		try {
-			final BufferedReader reader = new BufferedReader(new InputStreamReader(
-					MastodonApp.context.getAssets().open("blocks.txt")
-			));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (line.isBlank() || line.startsWith("#")) continue;
-				String[] parts = line.replaceAll("\"", "").split("[\s,;]");
-				if (parts.length == 0) continue;
-				String domain = parts[0].toLowerCase().trim();
-				if (domain.isBlank()) continue;
-				badDomains.add(domain);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 
 	public MastodonAPIController(@Nullable AccountSession session){
 		this.session=session;
 	}
 
-	public <T> void submitRequest(final MastodonAPIRequest<T> req){
+	public <T> void submitRequest(final MastodonAPIRequest<T> req, final String userAgent){
 		final String host = req.getURL().getHost();
-		final boolean isBad = host == null || badDomains.stream().anyMatch(h -> h.equalsIgnoreCase(host) || host.toLowerCase().endsWith("." + h));
 		thread.postRunnable(()->{
 			try{
-				if(isBad){
+				if(host == null){
 					Log.i(TAG, "submitRequest: refusing to connect to bad domain: " + host);
 					throw new IllegalArgumentException("Failed to connect to domain");
 				}
@@ -101,7 +76,7 @@ public class MastodonAPIController{
 				Request.Builder builder=new Request.Builder()
 						.url(req.getURL().toString())
 						.method(req.getMethod(), req.getRequestBody())
-						.header("User-Agent", "MoshidonAndroid/"+BuildConfig.VERSION_NAME);
+						.header("User-Agent", userAgent+BuildConfig.VERSION_NAME);
 
 				String token=null;
 				if(session!=null)
